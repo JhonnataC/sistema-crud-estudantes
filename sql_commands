@@ -1,0 +1,15 @@
+CREATE TABLE IF NOT EXISTS students (
+	id SERIAL PRIMARY KEY,
+	age INTEGER NOT NULL,
+	code INTEGER NOT NULL UNIQUE,
+	name TEXT NOT NULL
+)
+
+
+INSERT INTO students(code, name, age) VALUES (10001111, 'Chris', 16)
+INSERT INTO students(code, name, age) VALUES (11110000, 'Freddy', 16)
+INSERT INTO students(code, name, age) VALUES (22221111, 'David', 17)
+
+SELECT * FROM students
+
+DROP TABLE students

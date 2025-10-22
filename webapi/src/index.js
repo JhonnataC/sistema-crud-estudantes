@@ -1,10 +1,11 @@
+import { envConfig } from './utils/env_config.js'
 import * as http from 'http'
 import { generateInstance } from './factories/student_factory.js'
 import { Student } from './entities/student.js'
 import { NotFoundError } from './entities/errors.js'
 
 
-const PORT = 3000
+const PORT = envConfig.api_port
 const DEFAULT_HEADER = {'Content-Type': 'application/json'}
 
 const studentService = generateInstance()
@@ -14,16 +15,46 @@ const routes = {
         const { id } = request.queryString
         const students = await studentService.get(id)
         response.writeHead(200, DEFAULT_HEADER)
-        response.write(JSON.stringify({results: students}))
-
+        response.write(JSON.stringify({results: students}))        
         return response.end()
+    },
+
+    '/students:put': async (request, response) => {
+        for await (const data of request) {            
+            try {
+                const { id } = request.queryString
+                const studentData = JSON.parse(data)                
+
+                const updatedStudent = await studentService.update(id, studentData)
+
+                response.writeHead(201, DEFAULT_HEADER)
+                response.write(JSON.stringify({success: 'Student updated with success', updatedStudent: updatedStudent}))
+
+                return response.end()
+            } catch (error) {
+                return handlerError(response)(error)
+            }
+        }
+    },
+
+    '/students:delete': async (request, response) => {
+        try {
+            const { id } = request.queryString
+
+            await studentService.delete(id)
+
+            response.writeHead(204, DEFAULT_HEADER)                    
+            return response.end()
+        } catch (error) {
+            return handlerError(response)(error)
+        }
     },
 
     '/students:post': async (request, response) => {
         for await (const data of request) {
             try {
-                const item = JSON.parse(data)             
-                const student = new Student(item)
+                const studentData = JSON.parse(data)
+                const student = new Student(studentData)
                 const {valid, error} = student.isValid()
 
                 if (!valid) {
@@ -35,10 +66,7 @@ const routes = {
                 const id = await studentService.create(student)
                 response.writeHead(201, DEFAULT_HEADER)
                 response.write(JSON.stringify({success: 'Student created with success', id: id}))
-
-                // Só temos o retorno aqui pois é um objeto body que recebemos na requisição
-                // se for um arquivo por exemplo, que sobe sob demanda, ele poderia entrar 
-                // mais vezes em um mesmo evento, nesse caso não teriamos o return. 
+             
                 return response.end()
             } catch (error) {
                 return handlerError(response)(error)
@@ -58,9 +86,10 @@ function handlerError(response) {
         if (error instanceof NotFoundError) {
             response.writeHead(404, DEFAULT_HEADER)
             response.write(JSON.stringify({error: error.message}))
+            response.end()
         } else {
             response.writeHead(500, DEFAULT_HEADER)
-            response.write(JSON.stringify({error: 'Internal error'}))
+            response.write(JSON.stringify({error: error}))
             response.end()
         }
     }
@@ -73,7 +102,6 @@ const handler = (request, response) => {
     request.queryString = {id: isNaN(id) ? id : Number(id)}
 
     const key = `/${route}:${method.toLowerCase()}`
-    
     const chosen = routes[key] ?? routes.default
     return chosen(request, response).catch(handlerError(response))
 }

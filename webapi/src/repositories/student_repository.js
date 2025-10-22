@@ -1,78 +1,74 @@
-import {readFile, writeFile} from 'fs/promises'
 import { NotFoundError } from '../entities/errors.js'
+import { pool as db }  from '../database/database_connection.js'
 
 
-// Responsável por manipular os dados do Banco de Dados
+//Responsável por manipular os dados do Banco de Dados
 export class StudentRepository {
-    constructor({file}) {
-        this.file = file
-    }
-
-    async _currentFileContent() {
-        return JSON.parse(await readFile(this.file))
-    }
+    constructor() {}
 
     async get(studentId) {
-        const all = await this._currentFileContent()
-        if (!studentId) return all
+        const query = 'SELECT * FROM students'
+        const all = await db.query(query)
 
-        const item = all.find(({ id }) => studentId === id)
-        
-        console.log({item})
+        if (!studentId) return all.rows
 
-        return all.find(({ id }) => studentId === id)
+        const item = all.rows.find(({ id }) => studentId === id)
+
+        if (item === undefined) {
+            throw new NotFoundError('Student not found')
+        }
+
+        return item
     }
 
-    async create(data) {
-        const currentFile = await this._currentFileContent()
-        currentFile.push(data)
-
-        await writeFile(this.file, JSON.stringify(currentFile))
-
-        return data.id
+    async create(data) {        
+        const query = 'INSERT INTO students(name, age, code) VALUES ($1, $2, $3) RETURNING id'
+        const values = [data.name, data.age, data.code]
+        
+        try {
+            const res = await db.query(query, values)
+            const id = res.rows[0].id;
+            return id;
+        } catch (error) {
+            throw error
+        }        
     }
 
     async update(studentId, newData) {
-        const all = await this._currentFileContent()       
-        const oldStudentIndex = all.findIndex(({ id }) => studentId === id)
-        
-        if (oldStudentIndex == -1) {
-            throw new NotFoundError('Student not found')
-        } 
-        
-        const oldStudentData = all[oldStudentIndex]
-        
-        const updatedStudent = {
-            ...oldStudentData,
-            ...newData
-        }
+        try {
+            const student = await this.get(studentId)            
+            const updatedStudent = {
+                ...student,
+                ...newData
+            }
 
-        all[oldStudentIndex] = updatedStudent
+            const query = 'UPDATE students SET name = $1, age = $2 WHERE id = $3'
+            const params = [updatedStudent.name, updatedStudent.age, studentId]
+            
+            await db.query(query, params)
 
-        await writeFile(this.file, JSON.stringify(all))
-
-        return updatedStudent
+            return updatedStudent;
+        } catch (error) {
+            throw error
+        }        
     }
 
     async delete(studentId) {
-        const all = await this._currentFileContent()
-        const deleteStudentIndex = all.findIndex(({ id }) => studentId === id)
-
-        if (deleteStudentIndex === -1) {
-            throw new NotFoundError('Student not found')
+        try {
+            const query = 'DELETE FROM students WHERE id = $1'
+            const res = await db.query(query, [studentId])
+            
+            if (res.rowCount === 0) {
+                throw new NotFoundError('Student not found')
+            }
+        } catch (error) {
+            throw error
         }
+    }
 
-        all.splice(deleteStudentIndex, 1)
-        
-        await writeFile(this.file, JSON.stringify(all))
+    async getByCode(code) {
+        const query = 'SELECT 1 FROM students WHERE code = $1'
+        const res = await db.query(query, [code])
+        return res.rowCount > 0
     }
 }
-
-// const studentRepository = new StudentRepository({
-//     file: "./../../database/data.json"
-// })
-
-// studentRepository.get(1).then(console.log).catch(error => console.log({error}))
-// studentRepository.create({id: 5, name: 'Angus', age: 15}).then(console.log).catch(error => console.log({error}))
-// studentRepository.update(1, {name: "Chris"}).then(console.log).catch(error => console.log({error}))
-// studentRepository.delete(5).catch((error) => console.log({error}))

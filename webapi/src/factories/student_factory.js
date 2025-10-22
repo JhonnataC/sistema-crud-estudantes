@@ -20,7 +20,3 @@ export const generateInstance = () => {
 
     return studentService;
 }
-
-// generateInstance().find().then(console.log).catch(error => (console.log('error', error)));
-
-

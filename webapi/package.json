@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "type": "module",
-  "scripts": {    
+  "scripts": {
     "start": "node src/index.js",
     "dev": "npx nodemon src/index.js"
   },
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "dotenv": "^17.2.3",
+    "mysql2": "^3.15.3",
     "pg": "^8.16.3"
   }
 }

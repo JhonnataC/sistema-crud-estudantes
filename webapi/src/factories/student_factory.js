@@ -4,19 +4,14 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 
-// Para gerar as instâncias.
-// Cuida da injeção de dependência?
-// Age como um ServiceLocator?
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename);
-
-const filename = join(__dirname, '../../database', 'data.json');
-
+// Para gerar as instâncias da aplicação
 export const generateInstance = () => {
-    const studentRepository = new StudentRepository({ file: filename });
+    const studentRepository = new StudentRepository();
 
     const studentService = new StudentService({ studentRepository });
 
     return studentService;
 }
+
+const res = generateInstance().get()
+console.log(res)

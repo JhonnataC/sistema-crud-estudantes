@@ -82,14 +82,14 @@ const routes = {
 }
 
 function handlerError(response) {
-    const innerHandlerError = function(error) {
+    const innerHandlerError = (error) => {
         if (error instanceof NotFoundError) {
             response.writeHead(404, DEFAULT_HEADER)
             response.write(JSON.stringify({error: error.message}))
             response.end()
         } else {
             response.writeHead(500, DEFAULT_HEADER)
-            response.write(JSON.stringify({error: error}))
+            response.write(JSON.stringify({error: error.message}))
             response.end()
         }
     }
@@ -97,6 +97,15 @@ function handlerError(response) {
 }
 
 const handler = (request, response) => {
+    response.setHeader('Access-Control-Allow-Origin', '*')
+    response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+
+    if (request.method === 'OPTIONS') {
+        response.writeHead(204)
+        return response.end()
+    }
+
     const { url , method } = request
     const [first, route, id] = url.split('/')
     request.queryString = {id: isNaN(id) ? id : Number(id)}

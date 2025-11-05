@@ -9,7 +9,7 @@ export class StudentRepository {
     async get(studentId) {
         const query = 'SELECT * FROM students'
         const all = await db.query(query)
-
+        console.log(all[0])
         if (!studentId) return all.rows
 
         const item = all.rows.find(({ id }) => studentId === id)
